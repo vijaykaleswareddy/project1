@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hangman</title>
+
+<style>
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    text-align: center;
+    font-family: Arial, sans-serif;
+}
+
+.word {
+    font-size: 50px;
+    letter-spacing: 15px;
+    margin: 20px;
+    font-family: monospace;
+    color: #333;
+}
+
+.key-btn {
+    padding: 10px;
+    margin: 5px;
+    min-width: 40px;
+    cursor: pointer;
+}
+
+.key-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+    <h1>Hangman</h1>
+    <div id="input" class="word">_ _ _ _ _ _</div>
+    <p>Lives remaining: <span id="lives">6</span></p>
+    <div id="buttons"></div>
+    <button id="resetBtn">New Game</button>
+</div>
+
+<script>
+const input = document.getElementById("input");
+const livesDisplay = document.getElementById("lives");
+const buttonContainer = document.getElementById("buttons");
+const resetBtn = document.getElementById("resetBtn");
+
+let word = "";
+let guessedLetters = [];
+let remainingLives = 6;
+let gameEnded = false;
+
+async function startGame() {
+    guessedLetters = [];
+    remainingLives = 6;
+    gameEnded = false;
+
+    livesDisplay.textContent = remainingLives;
+    input.textContent = "Loading...";
+    buttonContainer.innerHTML = "";
+
+    try {
+        const response = await fetch(
+            "https://random-word-api.vercel.app/api?words=1&length=6"
+        );
+        const data = await response.json();
+
+        word = data[0].toUpperCase();
+
+    
+        guessedLetters.push(word[0], word[word.length - 1]);
+
+        updateUI();
+    } catch {
+        input.textContent = "Error loading word";
+    }
+}
+
+function renderWord() {
+    input.textContent = word
+        .split("")
+        .map(letter => guessedLetters.includes(letter) ? letter : "_")
+        .join(" ");
+}
+
+function renderKeyboard() {
+    buttonContainer.innerHTML = "";
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+    alphabet.forEach(letter => {
+        const btn = document.createElement("button");
+        btn.textContent = letter;
+        btn.className = "key-btn";
+
+        btn.disabled = guessedLetters.includes(letter) || gameEnded;
+
+        btn.onclick = () => handleGuess(letter);
+        buttonContainer.appendChild(btn);
+    });
+}
+
+function updateUI() {
+    livesDisplay.textContent = remainingLives;
+    renderWord();
+    renderKeyboard();
+    checkGameOver();
+}
+
+function handleGuess(letter) {
+    if (gameEnded || guessedLetters.includes(letter)) return;
+
+    guessedLetters.push(letter);
+
+    if (!word.includes(letter)) {
+        remainingLives--;
+    }
+
+    updateUI();
+}
+
+function checkGameOver() {
+    if (!input.textContent.includes("_")) {
+        gameEnded = true;
+        setTimeout(() => alert(` You Win! The word was ${word}`), 200);
+    } 
+    else if (remainingLives <= 0) {
+        gameEnded = true;
+        setTimeout(() => alert(` Game Over! The word was ${word}`), 200);
+    }
+}
+
+resetBtn.addEventListener("click", startGame);
+
+startGame();
+</script>
+
+</body>
+</html>
+
